@@ -3,10 +3,6 @@ import numpy as np
 import streamlit as st
 import altair as alt
 
-import os
-print(os.path.exists('recursos/Olist_Data/olist_customers_dataset.csv'))
-
-print(os.getcwd())
 
 
 #Leemos los dos archivos CSV para los dos primeros ejercicios
