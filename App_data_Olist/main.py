@@ -4,7 +4,7 @@ import streamlit as st
 import altair as alt
 import os
 
-#Carga de datos
+#Lectura de los archivos csv, para poder trabajar con ellos y sus respectivas relaciones de campos.
 
 @st.cache_data
 def load_data():
@@ -25,25 +25,26 @@ def load_data():
 
     return df, df2, df_final, df_review, df_items, df_products, df_translation
 
-# Llamada a la función
+# carga de datos en los dataframes de pandas
 df, df2, df_final, df_review, df_items, df_products, df_translation = load_data()
 
-#Funciones que se llaman según se seleccione en el gráfico
+
 
 def grafico_top_estados():
     st.subheader("Estados con más clientes en el rango de fechas seleccionado")
-
+#Obtenemos fecha minima y máxima para predisponer el objeto date_input en un campo de fechas que tenga sentido
     min_fecha = df_final["order_purchase_timestamp"].min().date()
     max_fecha = df_final["order_purchase_timestamp"].max().date()
-
+#Creación del componente visual para seleccionar fechas
     fecha_inicio, fecha_fin = st.date_input("Selecciona un rango de fechas", [min_fecha, max_fecha])
     fecha_inicio = pd.to_datetime(fecha_inicio)
     fecha_fin = pd.to_datetime(fecha_fin)
-
+#Actualización del dataframe dependiendo de la fecha seleccionada
     df_filtrado = df_final[(df_final["order_purchase_timestamp"] >= fecha_inicio) & (df_final["order_purchase_timestamp"] <= fecha_fin)]
     top_estados = df_filtrado["customer_state"].value_counts(ascending=False).head(5).reset_index()
     top_estados.columns = ['customer_state', 'num_clientes']
 
+#Creación del gráfico con las librerías streamlit y Altair
     chart = alt.Chart(top_estados).mark_bar(color='orange').encode(
         x=alt.X('num_clientes:Q', title='Número de Clientes'),
         y=alt.Y('customer_state:N', sort='-x', title='Estado'),
@@ -52,9 +53,11 @@ def grafico_top_estados():
 
     st.altair_chart(chart, use_container_width=True)
 
+#Vamos filtrando el dataframe y realizando las métricas necesarias para obtener el número de pedidos y el porcentaje respecto al total. Ademas de la relación entre clientes y pedidos
     tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     tabla2 = df_final.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
     total2 = tabla2['num_pedidos_ciudad'].sum()
+#Esta función lamda, se encarga de añadir en la misma columna el número de pedidos por ciudad y el porcentaje respecto al total.
     tabla2['numero de pedidos y %'] = tabla2['num_pedidos_ciudad'].apply(
         lambda x: f"{x} pedidos ({(x / total2 * 100):.1f}%)")
 
@@ -63,13 +66,16 @@ def grafico_top_estados():
     tabla_completa = tabla_completa.sort_values(by="num_clientes", ascending=False)
     tabla_completa.pop('num_pedidos_ciudad')
 
+#Mostramos el dataframe
     st.subheader("Clientes por estado y ciudad")
     st.dataframe(tabla_completa)
 
     tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
-    top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)
+#componente visual para seleccionar ciudades
+    top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)   
     top = tabla.sort_values(by='num_clientes', ascending=False).head(top_n)
 
+#Creación de gráfico con Altair y Streamlit
     chart = alt.Chart(top).mark_bar(color='#B2F2BB').encode(
         x=alt.X('num_clientes:Q', title='Número de Pedidos'),
         y=alt.Y('customer_city:N', sort='-x', title='Ciudad'),
@@ -79,6 +85,7 @@ def grafico_top_estados():
     st.title("Distribución de Pedidos por Ciudad")
     st.altair_chart(chart, use_container_width=True)
 # 
+
 def pedidos_retrasados():
     df_select_customer = df[['customer_id', 'customer_city', 'customer_state']]
     df_select_orders = df2[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
