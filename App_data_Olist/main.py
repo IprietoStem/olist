@@ -55,7 +55,7 @@ def grafico_top_estados():
 
 #Vamos filtrando el dataframe y realizando las métricas necesarias para obtener el número de pedidos y el porcentaje respecto al total. Ademas de la relación entre clientes y pedidos
     tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
-    tabla2 = df_final.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
+    tabla2 = df_filtrado.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
     total2 = tabla2['num_pedidos_ciudad'].sum()
 #Esta función lamda, se encarga de añadir en la misma columna el número de pedidos por ciudad y el porcentaje respecto al total.
     tabla2['numero de pedidos y %'] = tabla2['num_pedidos_ciudad'].apply(
@@ -70,7 +70,7 @@ def grafico_top_estados():
     st.subheader("Clientes por estado y ciudad")
     st.dataframe(tabla_completa)
 
-    tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
+    #tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
 #componente visual para seleccionar ciudades
     top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)   
     top = tabla.sort_values(by='num_clientes', ascending=False).head(top_n)
