@@ -30,7 +30,6 @@ df, df2, df_final, df_review, df_items, df_products, df_translation = load_data(
 
 #Funciones que se llaman según se seleccione en el gráfico
 
-#
 def grafico_top_estados():
     st.subheader("Estados con más clientes en el rango de fechas seleccionado")
 
@@ -67,7 +66,7 @@ def grafico_top_estados():
     st.subheader("Clientes por estado y ciudad")
     st.dataframe(tabla_completa)
 
-    tabla = df_final.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
+    tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)
     top = tabla.sort_values(by='num_clientes', ascending=False).head(top_n)
 
