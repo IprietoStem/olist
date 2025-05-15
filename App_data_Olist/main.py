@@ -56,7 +56,6 @@ def grafico_top_estados():
 
     st.altair_chart(chart, use_container_width=True)
 
-def tabla_clientes_pedidos():
     tabla = df_final.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     tabla2 = df_final.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
     total2 = tabla2['num_pedidos_ciudad'].sum()
@@ -71,36 +70,16 @@ def tabla_clientes_pedidos():
     st.subheader("Clientes por estado y ciudad")
     st.dataframe(tabla_completa)
 
-
-    st.title("Distribución de Pedidos por Ciudad")
-
-    top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)
-
-    tabla_top = tabla_completa.sort_values(by='num_clientes', ascending=False).head(top_n)
-
-    chart = alt.Chart(tabla_top).mark_bar(color='#B2F2BB').encode(
-        x=alt.X('num_clientes:Q', title='Número de Clientes'),
-        y=alt.Y('customer_city:N', sort='-x', title='Ciudad'),
-        tooltip=['customer_city', 'num_clientes']
-    ).properties(
-        title=f'Top {top_n} Ciudades con Más Clientes',
-        width=700,
-        height=400
-    )
-
-    st.altair_chart(chart, use_container_width=True)
-
-
 def distribucion_pedidos():
     tabla = df_final.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)
     top = tabla.sort_values(by='num_clientes', ascending=False).head(top_n)
 
     chart = alt.Chart(top).mark_bar(color='#B2F2BB').encode(
-        x=alt.X('num_clientes:Q', title='Número de Clientes'),
+        x=alt.X('num_clientes:Q', title='Número de Pedidos'),
         y=alt.Y('customer_city:N', sort='-x', title='Ciudad'),
         tooltip=['customer_city', 'num_clientes']
-    ).properties(title=f'Top {top_n} Ciudades con Más Clientes', width=700, height=400)
+    ).properties(title=f'Top {top_n} Ciudades con Más Pedidos', width=700, height=400)
 
     st.title("Distribución de Pedidos por Ciudad")
     st.altair_chart(chart, use_container_width=True)
@@ -279,9 +258,8 @@ def resumen_retrasos():
 st.sidebar.title("📊 Navegación")
 opciones = {
     "🏙️ Top Estados con Más Clientes": grafico_top_estados,
-    "📍 Clientes por Estado y Ciudad": tabla_clientes_pedidos,
     "🏢 Distribución de Pedidos por Ciudad": distribucion_pedidos,
-    "🚚 Pedidos Retrasados por Ciudad": pedidos_retrasados,    "🧾 Resumen de Retrasos por Ciudad": resumen_retrasos,
+    "🚚 Pedidos Retrasados por Ciudad": pedidos_retrasados,
     "🧾 Resumen de Retrasos por Ciudad": resumen_retrasos,
     "⭐ Análisis de Reviews por Estado": reviews_por_estado,
     "📦 Productos por Categoría": productos_por_categoria,
