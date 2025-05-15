@@ -4,9 +4,7 @@ import streamlit as st
 import altair as alt
 import os
 
-# ========================
-# CARGA Y PROCESADO GLOBAL
-# ========================
+#Carga de datos
 
 @st.cache_data
 def load_data():
@@ -30,10 +28,9 @@ def load_data():
 # Llamada a la función
 df, df2, df_final, df_review, df_items, df_products, df_translation = load_data()
 
-# ====================
-# FUNCIONES DE GRAFICO
-# ====================
+#Funciones que se llaman según se seleccione en el gráfico
 
+#
 def grafico_top_estados():
     st.subheader("Estados con más clientes en el rango de fechas seleccionado")
 
@@ -82,7 +79,7 @@ def grafico_top_estados():
 
     st.title("Distribución de Pedidos por Ciudad")
     st.altair_chart(chart, use_container_width=True)
-
+# 
 def pedidos_retrasados():
     df_select_customer = df[['customer_id', 'customer_city', 'customer_state']]
     df_select_orders = df2[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
@@ -111,30 +108,34 @@ def pedidos_retrasados():
 
     st.altair_chart(chart, use_container_width=True)
 
+#Función que muestra las reviews por estado de pedidos que no llegaron con retraso y calcula la media de las mismas
 def reviews_por_estado():
+    #Merge necesarios para hacer los calculos 
     df_merge = pd.merge(df, df2, on='customer_id')
     df_merge = pd.merge(df_merge, df_review, on='order_id')
-
+    #Convertimos a datatime
     df_merge['order_delivered_customer_date'] = pd.to_datetime(df_merge['order_delivered_customer_date'])
     df_merge['order_estimated_delivery_date'] = pd.to_datetime(df_merge['order_estimated_delivery_date'])
+    #Cacula el retraso en dias
     df_merge['delay_days'] = (df_merge['order_delivered_customer_date'] - df_merge['order_estimated_delivery_date']).dt.days
-
+    #Filtramos reviews de pedidos que no llegaron tarde
     df_no_late = df_merge[df_merge['delay_days'] <= 0]
     df_merge_review_non_delayed = df_no_late[['order_id', 'customer_state', 'review_score', 'review_id']]
-
+    #Contamos las reviews segun estado
     review_count =  df_merge_review_non_delayed.groupby('customer_state')['review_id'].count()
+    #Calculamos la media segun estado
     review_mean = round(df_merge_review_non_delayed.groupby('customer_state')['review_score'].mean(), 2)
 
     st.title("Análisis de Reviews por Estado")
     opcion = st.selectbox("Selecciona qué gráfico quieres visualizar:", ("Número de reviews por estado", "Media de puntuación por estado"))
-
+    #Slider para cambiar la cantidad de paises visualizados
     top_n = st.slider("Número de estados a mostrar", min_value=3, max_value=len(review_count), value=10)
 
     df_review_count = review_count.sort_values(ascending=False).reset_index()
     df_review_count.columns = ['customer_state', 'review_count']
     df_review_mean = review_mean.sort_values(ascending=False).reset_index()
     df_review_mean.columns = ['customer_state', 'review_mean']
-
+    # Opción para cambiar la gráfica que se visualiza
     if opcion == "Número de reviews por estado":
         top = df_review_count.head(top_n)
         chart = alt.Chart(top).mark_bar(color='#6495ED').encode(
@@ -153,12 +154,14 @@ def reviews_por_estado():
         ).properties(title='Top estados por puntuación media')
         st.altair_chart(chart, use_container_width=True)
 
+#Función que muestra las categorias segun puntuación y muestra también las que tienen más pedidos
 def productos_por_categoria():
+    # Traducción de la categoría productos
     df_merge_translation = pd.merge(df_products, df_translation, on='product_category_name', how='left')
     df_products['product_category_name'] = df_merge_translation['product_category_name_english']
     df_merge = pd.merge(df_items, df_products, on='product_id')
     df_merge = pd.merge(df_merge, df_review, on='order_id')
-
+    # Realiza el reemplazo con el texto de la traducción
     df_merge['product_category_name'] = df_merge['product_category_name'].str.replace('_', ' ').str.capitalize()
     grouped = df_merge.groupby('product_category_name').agg({
         'review_score': 'mean',
@@ -168,7 +171,7 @@ def productos_por_categoria():
     st.title("Categorías de productos por puntuación media de reviews")
     top_n = st.slider("Selecciona cuántas categorías mostrar", min_value=5, max_value=30, value=10)
     opcion = st.selectbox("Selecciona qué gráfico quieres visualizar:", ("Mayor puntuación", "Menor puntuación", "Categorías con más pedidos"))
-
+    # Menú de selección para el gráfico que queremos visualizar
     if opcion == "Mayor puntuación":
         top = grouped.sort_values("avg_review_score", ascending=False).head(top_n).reset_index()
         chart = alt.Chart(top).mark_bar(color='#F08080').encode(
@@ -196,6 +199,7 @@ def productos_por_categoria():
         ).properties(title='Categorías con más pedidos')
         st.altair_chart(chart, use_container_width=True)
 
+# Función que calcula y genera el grfico para el resumen de retrasos
 def resumen_retrasos():
     df_select_customer = df[['customer_id', 'customer_city']]
     df_select_orders = df2[['order_id', 'customer_id', 'order_status', 'order_purchase_timestamp',
@@ -229,7 +233,7 @@ def resumen_retrasos():
     # Filtrar solo pedidos retrasados
     df_late = df_delivered[df_delivered['delay_days'] > 0]
 
-    # Identificar causa principal del retraso
+    # Identifica la causa del retraso
     razones = np.select(
         [
             (df_late['delivery_time'] > df_late['preparation_time']) & (df_late['delivery_time'] > df_late['approved_time']),
@@ -245,20 +249,18 @@ def resumen_retrasos():
     percent = df_late.groupby('customer_city').size() / df_delivered.groupby('customer_city').size() * 100
     mean_delay = df_late.groupby('customer_city')['delay_days'].mean()
     cause = df_late.groupby('customer_city')['delay_cause'].first()
-
+    # Crea el dataframe para mostrar los datos calculados, porcentaje, media y causa
     resumen = pd.concat([
         percent.rename('Porcentaje de Retrasos'),
         mean_delay.rename('Media de Días de Retraso'),
         cause.rename('Causa Principal')
-    ], axis=1).round(2).sort_values(by='Porcentaje de Retrasos', ascending=False).reset_index().rename(columns={'customer_city': 'Ciudad'})
+    ], axis=1, join='inner').round(2).sort_values(by='Porcentaje de Retrasos', ascending=False).reset_index().rename(columns={'customer_city': 'Ciudad'})
 
     st.title("Resumen de Retrasos por Ciudad")
     st.dataframe(resumen)
 
 
-# ======================
-# INTERFAZ DE NAVEGACIÓN
-# ======================
+# Navegación, al clicar el una opción ejecuta la función correspondiente
 
 st.sidebar.title("📊 Navegación")
 opciones = {
