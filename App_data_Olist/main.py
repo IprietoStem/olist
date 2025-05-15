@@ -8,22 +8,21 @@ import os
 # CARGA Y PROCESADO GLOBAL
 # ========================
 
-# Carga de CSVs
 @st.cache_data
 def load_data():
-    base_path = os.path.join(os.path.dirname(__file__), '..', 'recursos', 'Olist_Data')
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_dir, '..', 'recursos', 'Olist_Data')
 
-    df = pd.read_csv(os.path.join(base_path, 'olist_customers_dataset.csv'))
-    df2 = pd.read_csv(os.path.join(base_path, 'olist_orders_dataset.csv'))
-    df_review = pd.read_csv(os.path.join(base_path, 'olist_order_reviews_dataset.csv'))
-    df_items = pd.read_csv(os.path.join(base_path, 'olist_order_items_dataset.csv'))
-    df_products = pd.read_csv(os.path.join(base_path, 'olist_products_dataset.csv'))
-    df_translation = pd.read_csv(os.path.join(base_path, 'product_category_name_translation.csv'))
+    df = pd.read_csv(os.path.join(data_path, 'olist_customers_dataset.csv'))
+    df2 = pd.read_csv(os.path.join(data_path, 'olist_orders_dataset.csv'))
+    df_review = pd.read_csv(os.path.join(data_path, 'olist_order_reviews_dataset.csv'))
+    df_items = pd.read_csv(os.path.join(data_path, 'olist_order_items_dataset.csv'))
+    df_products = pd.read_csv(os.path.join(data_path, 'olist_products_dataset.csv'))
+    df_translation = pd.read_csv(os.path.join(data_path, 'product_category_name_translation.csv'))
 
     df2["order_purchase_timestamp"] = pd.to_datetime(df2["order_purchase_timestamp"])
     df_final = df.merge(df2, on="customer_id")
 
-    # Traducción de nombres de categoría
     df_merge_products_translation = pd.merge(df_products, df_translation, on='product_category_name', how='left')
     df_products['product_category_name'] = df_merge_products_translation['product_category_name_english']
 
