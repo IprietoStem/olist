@@ -25,10 +25,10 @@ def load_data():
     df_merge_products_translation = pd.merge(df_products, df_translation, on='product_category_name', how='left')
     df_products['product_category_name'] = df_merge_products_translation['product_category_name_english']
 
-    return df, df2, df_final, df_review, df_items, df_products
+    return df, df2, df_final, df_review, df_items, df_products, df_translation
 
 # Llamada a la función
-df, df2, df_final, df_review, df_items, df_products = load_data()
+df, df2, df_final, df_review, df_items, df_products, df_translation = load_data()
 
 # ====================
 # FUNCIONES DE GRAFICO
@@ -198,26 +198,47 @@ def productos_por_categoria():
 
 def resumen_retrasos():
     df_select_customer = df[['customer_id', 'customer_city']]
-    df_select_orders = df2[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
+    df_select_orders = df2[['order_id', 'customer_id', 'order_status', 'order_purchase_timestamp',
+                            'order_approved_at', 'order_delivered_carrier_date',
+                            'order_delivered_customer_date', 'order_estimated_delivery_date']]
 
     df_merge = pd.merge(df_select_customer, df_select_orders, on='customer_id')
-    fechas = ['order_delivered_customer_date', 'order_estimated_delivery_date', 'order_purchase_timestamp', 'order_approved_at', 'order_delivered_carrier_date']
-    for col in fechas:
-        df_merge[col] = pd.to_datetime(df_merge[col]).dt.date
 
+    # Convertimos a datetime de forma segura
+    fechas = ['order_delivered_customer_date', 'order_estimated_delivery_date',
+              'order_purchase_timestamp', 'order_approved_at', 'order_delivered_carrier_date']
+    for col in fechas:
+        df_merge[col] = pd.to_datetime(df_merge[col], errors='coerce')
+
+    # Nos quedamos solo con pedidos entregados y que tienen fechas válidas
     df_delivered = df_merge[df_merge['order_status'] == 'delivered'].copy()
+    df_delivered = df_delivered.dropna(subset=[
+        'order_delivered_customer_date',
+        'order_estimated_delivery_date',
+        'order_purchase_timestamp',
+        'order_approved_at',
+        'order_delivered_carrier_date'
+    ])
+
+    # Cálculo de tiempos
     df_delivered['delay_days'] = (df_delivered['order_delivered_customer_date'] - df_delivered['order_estimated_delivery_date']).dt.days
     df_delivered['approved_time'] = (df_delivered['order_approved_at'] - df_delivered['order_purchase_timestamp']).dt.days
     df_delivered['preparation_time'] = (df_delivered['order_delivered_carrier_date'] - df_delivered['order_approved_at']).dt.days
     df_delivered['delivery_time'] = (df_delivered['order_delivered_customer_date'] - df_delivered['order_delivered_carrier_date']).dt.days
 
+    # Filtrar solo pedidos retrasados
     df_late = df_delivered[df_delivered['delay_days'] > 0]
 
-    razones = np.select([
-        (df_late['delivery_time'] > df_late['preparation_time']) & (df_late['delivery_time'] > df_late['approved_time']),
-        (df_late['preparation_time'] > df_late['delivery_time']) & (df_late['preparation_time'] > df_late['approved_time']),
-        (df_late['approved_time'] > df_late['delivery_time']) & (df_late['approved_time'] > df_late['preparation_time'])
-    ], ['envío', 'preparación', 'aprobación'], default='a_tiempo')
+    # Identificar causa principal del retraso
+    razones = np.select(
+        [
+            (df_late['delivery_time'] > df_late['preparation_time']) & (df_late['delivery_time'] > df_late['approved_time']),
+            (df_late['preparation_time'] > df_late['delivery_time']) & (df_late['preparation_time'] > df_late['approved_time']),
+            (df_late['approved_time'] > df_late['delivery_time']) & (df_late['approved_time'] > df_late['preparation_time'])
+        ],
+        ['envío', 'preparación', 'aprobación'],
+        default='a_tiempo'
+    )
 
     df_late['delay_cause'] = razones
 
@@ -233,6 +254,7 @@ def resumen_retrasos():
 
     st.title("Resumen de Retrasos por Ciudad")
     st.dataframe(resumen)
+
 
 # ======================
 # INTERFAZ DE NAVEGACIÓN
