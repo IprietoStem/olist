@@ -11,8 +11,7 @@ import os
 @st.cache_data
 def load_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, '..', 'recursos', 'Olist_Data')
-
+    data_path = os.path.join(base_dir, 'recursos', 'Olist_Data')
     df = pd.read_csv(os.path.join(data_path, 'olist_customers_dataset.csv'))
     df2 = pd.read_csv(os.path.join(data_path, 'olist_orders_dataset.csv'))
     df_review = pd.read_csv(os.path.join(data_path, 'olist_order_reviews_dataset.csv'))
