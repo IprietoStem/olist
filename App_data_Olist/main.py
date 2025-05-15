@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import altair as alt
+import os
 
 # ========================
 # CARGA Y PROCESADO GLOBAL
@@ -9,14 +10,15 @@ import altair as alt
 
 # Carga de CSVs
 @st.cache_data
-
 def load_data():
-    df = pd.read_csv('recursos/Olist_Data/olist_customers_dataset.csv')
-    df2 = pd.read_csv('recursos/Olist_Data/olist_orders_dataset.csv')
-    df_review = pd.read_csv('recursos/Olist_Data/olist_order_reviews_dataset.csv')
-    df_items = pd.read_csv('recursos/Olist_Data/olist_order_items_dataset.csv')
-    df_products = pd.read_csv('recursos/Olist_Data/olist_products_dataset.csv')
-    df_translation = pd.read_csv('recursos/Olist_Data/product_category_name_translation.csv')
+    base_path = os.path.join(os.path.dirname(__file__), '..', 'recursos', 'Olist_Data')
+
+    df = pd.read_csv(os.path.join(base_path, 'olist_customers_dataset.csv'))
+    df2 = pd.read_csv(os.path.join(base_path, 'olist_orders_dataset.csv'))
+    df_review = pd.read_csv(os.path.join(base_path, 'olist_order_reviews_dataset.csv'))
+    df_items = pd.read_csv(os.path.join(base_path, 'olist_order_items_dataset.csv'))
+    df_products = pd.read_csv(os.path.join(base_path, 'olist_products_dataset.csv'))
+    df_translation = pd.read_csv(os.path.join(base_path, 'product_category_name_translation.csv'))
 
     df2["order_purchase_timestamp"] = pd.to_datetime(df2["order_purchase_timestamp"])
     df_final = df.merge(df2, on="customer_id")
@@ -27,6 +29,7 @@ def load_data():
 
     return df, df2, df_final, df_review, df_items, df_products
 
+# Llamada a la función
 df, df2, df_final, df_review, df_items, df_products = load_data()
 
 # ====================
@@ -56,7 +59,9 @@ def grafico_top_estados():
 
     st.altair_chart(chart, use_container_width=True)
 
-    tabla = df_final.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
+
+
+    tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     tabla2 = df_final.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
     total2 = tabla2['num_pedidos_ciudad'].sum()
     tabla2['numero de pedidos y %'] = tabla2['num_pedidos_ciudad'].apply(
@@ -70,7 +75,6 @@ def grafico_top_estados():
     st.subheader("Clientes por estado y ciudad")
     st.dataframe(tabla_completa)
 
-def distribucion_pedidos():
     tabla = df_final.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     top_n = st.slider('Selecciona cuántas ciudades mostrar (Top N)', min_value=3, max_value=20, value=10)
     top = tabla.sort_values(by='num_clientes', ascending=False).head(top_n)
@@ -83,6 +87,7 @@ def distribucion_pedidos():
 
     st.title("Distribución de Pedidos por Ciudad")
     st.altair_chart(chart, use_container_width=True)
+
 
 def pedidos_retrasados():
     df_orders = pd.read_csv('recursos/Olist_Data/olist_orders_dataset.csv')
@@ -258,7 +263,6 @@ def resumen_retrasos():
 st.sidebar.title("📊 Navegación")
 opciones = {
     "🏙️ Top Estados con Más Clientes": grafico_top_estados,
-    "🏢 Distribución de Pedidos por Ciudad": distribucion_pedidos,
     "🚚 Pedidos Retrasados por Ciudad": pedidos_retrasados,
     "🧾 Resumen de Retrasos por Ciudad": resumen_retrasos,
     "⭐ Análisis de Reviews por Estado": reviews_por_estado,
