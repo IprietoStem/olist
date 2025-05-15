@@ -35,7 +35,6 @@ df, df2, df_final, df_review, df_items, df_products = load_data()
 # ====================
 
 def grafico_top_estados():
-    # Top 5 estados con más clientes en un rango
     st.subheader("Estados con más clientes en el rango de fechas seleccionado")
 
     min_fecha = df_final["order_purchase_timestamp"].min().date()
@@ -44,7 +43,7 @@ def grafico_top_estados():
     fecha_inicio, fecha_fin = st.date_input("Selecciona un rango de fechas", [min_fecha, max_fecha])
     fecha_inicio = pd.to_datetime(fecha_inicio)
     fecha_fin = pd.to_datetime(fecha_fin)
-    
+
     df_filtrado = df_final[(df_final["order_purchase_timestamp"] >= fecha_inicio) & (df_final["order_purchase_timestamp"] <= fecha_fin)]
     top_estados = df_filtrado["customer_state"].value_counts(ascending=False).head(5).reset_index()
     top_estados.columns = ['customer_state', 'num_clientes']
@@ -56,8 +55,6 @@ def grafico_top_estados():
     ).properties(title='Top 5 Estados con Más Clientes en el Rango Seleccionado', width=700, height=300)
 
     st.altair_chart(chart, use_container_width=True)
-
-
 
     tabla = df_filtrado.groupby(["customer_state", "customer_city"])["customer_id"].nunique().reset_index(name="num_clientes")
     tabla2 = df_final.groupby('customer_city')['order_id'].count().reset_index(name='num_pedidos_ciudad')
@@ -86,13 +83,9 @@ def grafico_top_estados():
     st.title("Distribución de Pedidos por Ciudad")
     st.altair_chart(chart, use_container_width=True)
 
-
 def pedidos_retrasados():
-    df_orders = pd.read_csv('recursos/Olist_Data/olist_orders_dataset.csv')
-    df_customer = pd.read_csv('recursos/Olist_Data/olist_customers_dataset.csv')
-
-    df_select_customer = df_customer[['customer_id', 'customer_city', 'customer_state']]
-    df_select_orders = df_orders[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
+    df_select_customer = df[['customer_id', 'customer_city', 'customer_state']]
+    df_select_orders = df2[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
 
     df_merge = pd.merge(df_select_customer, df_select_orders, on='customer_id')
     fechas = ['order_delivered_customer_date', 'order_estimated_delivery_date', 'order_purchase_timestamp', 'order_approved_at', 'order_delivered_carrier_date']
@@ -119,11 +112,7 @@ def pedidos_retrasados():
     st.altair_chart(chart, use_container_width=True)
 
 def reviews_por_estado():
-    df_orders = pd.read_csv('recursos/Olist_Data/olist_orders_dataset.csv')
-    df_customer = pd.read_csv('recursos/Olist_Data/olist_customers_dataset.csv')
-    df_review = pd.read_csv('recursos/Olist_Data/olist_order_reviews_dataset.csv')
-
-    df_merge = pd.merge(df_customer, df_orders, on='customer_id')
+    df_merge = pd.merge(df, df2, on='customer_id')
     df_merge = pd.merge(df_merge, df_review, on='order_id')
 
     df_merge['order_delivered_customer_date'] = pd.to_datetime(df_merge['order_delivered_customer_date'])
@@ -165,11 +154,6 @@ def reviews_por_estado():
         st.altair_chart(chart, use_container_width=True)
 
 def productos_por_categoria():
-    df_items = pd.read_csv('recursos/Olist_Data/olist_order_items_dataset.csv')
-    df_review = pd.read_csv('recursos/Olist_Data/olist_order_reviews_dataset.csv')
-    df_products = pd.read_csv('recursos/Olist_Data/olist_products_dataset.csv')
-    df_translation = pd.read_csv('recursos/Olist_Data/product_category_name_translation.csv')
-
     df_merge_translation = pd.merge(df_products, df_translation, on='product_category_name', how='left')
     df_products['product_category_name'] = df_merge_translation['product_category_name_english']
     df_merge = pd.merge(df_items, df_products, on='product_id')
@@ -213,11 +197,8 @@ def productos_por_categoria():
         st.altair_chart(chart, use_container_width=True)
 
 def resumen_retrasos():
-    df_orders = pd.read_csv('recursos/Olist_Data/olist_orders_dataset.csv')
-    df_customer = pd.read_csv('recursos/Olist_Data/olist_customers_dataset.csv')
-
-    df_select_customer = df_customer[['customer_id', 'customer_city']]
-    df_select_orders = df_orders[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
+    df_select_customer = df[['customer_id', 'customer_city']]
+    df_select_orders = df2[['order_id', 'customer_id', 'order_status','order_purchase_timestamp','order_approved_at','order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']]
 
     df_merge = pd.merge(df_select_customer, df_select_orders, on='customer_id')
     fechas = ['order_delivered_customer_date', 'order_estimated_delivery_date', 'order_purchase_timestamp', 'order_approved_at', 'order_delivered_carrier_date']
@@ -253,16 +234,15 @@ def resumen_retrasos():
     st.title("Resumen de Retrasos por Ciudad")
     st.dataframe(resumen)
 
-
 # ======================
 # INTERFAZ DE NAVEGACIÓN
 # ======================
 
 st.sidebar.title("📊 Navegación")
 opciones = {
-    "🏙️ Top Estados con Más Clientes": grafico_top_estados,
+    "🌇️ Top Estados con Más Clientes": grafico_top_estados,
     "🚚 Pedidos Retrasados por Ciudad": pedidos_retrasados,
-    "🧾 Resumen de Retrasos por Ciudad": resumen_retrasos,
+    "📟 Resumen de Retrasos por Ciudad": resumen_retrasos,
     "⭐ Análisis de Reviews por Estado": reviews_por_estado,
     "📦 Productos por Categoría": productos_por_categoria,
 }
